@@ -1,0 +1,21 @@
+# Generated IR files
+.ir/
+
+# Generated HDL output
+verilog-gen/
+vhdl-gen/
+
+# Simulation output
+sim/
+*.vcd
+
+# Testbench generated files
+testbench/
+
+# Eclipse project files
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db

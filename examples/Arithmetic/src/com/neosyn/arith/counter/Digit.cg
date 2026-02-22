@@ -1,0 +1,65 @@
+/*
+ * Copyright (c) 2013-2015, Synflow SAS
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * 
+ *   * Redistributions of source code must retain the above copyright notice,
+ *     this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright notice,
+ *     this list of conditions and the following disclaimer in the documentation
+ *     and/or other materials provided with the distribution.
+ *   * Neither the name of Synflow nor the names of its contributors may be
+ *     used to endorse or promote products derived from this software without
+ *     specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+package com.neosyn.arith.counter;
+
+
+/**
+ * This task manages the 15-segments display of the Versa board.
+ * 
+ * @author Nicolas Siret <nicolas.siret@synflow.com>
+ * @author Matthieu Wipliez <matthieu.wipliez@synflow.com>
+ * 
+ */
+task Digit {
+	import com.neosyn.arith.counter.Definitions.*;
+
+	in count_t count; out u15 digits;
+
+	void loop() {
+		count_t cnt = count.read;
+		u15 dig;
+		if (cnt < 100) {
+			dig = 0x01FF;
+		} else if (cnt < 200) {
+			dig = 0x4FFF;
+		} else if (cnt < 300) {
+			dig = 0x13DD;
+		} else if (cnt < 400) {
+			dig = 0x07DD;
+		} else if (cnt < 500) {
+			dig = 0x4DDD;
+		} else if (cnt < 511) {
+			dig = 0x25DD;
+		} else {
+			dig = 0x7EAB;
+		}
+		digits.write(dig);
+	}
+
+}

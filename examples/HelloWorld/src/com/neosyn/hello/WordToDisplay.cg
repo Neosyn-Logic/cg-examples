@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2015 Big boss
+ * All rights reserved.
+ */
+package com.neosyn.hello;
+
+task WordToDisplay {
+	out char character;
+
+	const char message[12] = "Hello\x20world\041";
+
+	void loop() {
+		for (u4 i = 0; i != 12; i++) {
+			character.write(message[i]);
+		}
+	}
+
+}

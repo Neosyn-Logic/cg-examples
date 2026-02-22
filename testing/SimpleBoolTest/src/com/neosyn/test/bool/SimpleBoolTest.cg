@@ -1,0 +1,33 @@
+/*
+ * Simple boolean test - tests boolean output type
+ * Outputs alternating true/false pattern.
+ */
+package test;
+
+task SimpleBoolTest {
+    properties {
+        test: {
+            flag: [ true, false, true, false, true ]
+        }
+    }
+
+    sync {
+        out bool flag;
+    }
+
+    bool state;
+    u8 count;
+
+    void setup() {
+        state = true;
+        count = 0;
+    }
+
+    void loop() {
+        if (count < 5) {
+            flag.write(state);
+            state = !state;
+            count++;
+        }
+    }
+}

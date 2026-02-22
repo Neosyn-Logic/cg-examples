@@ -1,0 +1,24 @@
+/*
+ * Simple doubler test - tests input/output task with testbench
+ * Takes input values and outputs their double.
+ */
+package test;
+
+task SimpleDoubler {
+    properties {
+        test: {
+            input: [ 1, 2, 3, 4, 5 ],
+            output: [ 2, 4, 6, 8, 10 ]
+        }
+    }
+
+    sync {
+        in u8 input;
+        out u8 output;
+    }
+
+    void loop() {
+        u8 v = input.read;
+        output.write(v * 2);
+    }
+}

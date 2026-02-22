@@ -1,0 +1,27 @@
+/*
+ * Simple adder test - tests task with two inputs
+ * Takes two u8 inputs and outputs their sum.
+ */
+package test;
+
+task SimpleAdder {
+    properties {
+        test: {
+            a: [ 1, 10, 100, 50, 0 ],
+            b: [ 2, 20, 50, 50, 255 ],
+            sum: [ 3, 30, 150, 100, 255 ]
+        }
+    }
+
+    sync {
+        in u8 a;
+        in u8 b;
+        out u8 sum;
+    }
+
+    void loop() {
+        u8 va = a.read;
+        u8 vb = b.read;
+        sum.write(va + vb);
+    }
+}

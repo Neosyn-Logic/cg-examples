@@ -1,0 +1,15 @@
+/*
+ * Copyright (c) 2016 Big boss
+ * All rights reserved.
+ */
+package com.neosyn.led;
+
+task BlankingLed {
+	out bool led;
+	
+	bool switch;
+	void loop() {
+		switch = !switch;
+		led.write(switch);
+	}
+}

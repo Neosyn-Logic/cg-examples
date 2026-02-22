@@ -1,0 +1,43 @@
+/*
+ * Test cross-task port write: tester writes to processor's input port
+ */
+package test;
+
+network DirectWriteTest {
+    properties {
+        test: true,
+        test: { terminate: "tester.finished" }
+    }
+
+    // processor: receives input, doubles it, sends output
+    processor = new task {
+        in u8 input_val;
+        out u8 output_val;
+
+        void loop() {
+            u8 val = input_val.read();
+            output_val.write(val * 2);
+        }
+    };
+
+    // tester: writes to processor's input port, reads result
+    tester = new task {
+        bool finished;
+
+        void setup() {
+            finished = false;
+        }
+
+        void loop() {
+            // Cross-task write: write to another inline task's input port
+            processor.input_val.write(5);
+
+            // Wait for and read the result
+            u8 result = processor.output_val.read();
+
+            // Print result
+            print("Result: ", result);
+            finished = true;
+        }
+    };
+}

@@ -1,0 +1,32 @@
+/*
+ * Simple FSM test - tests FSM-based task with testbench
+ * Outputs a sequence 0,1,2,3,4 using while loop FSM.
+ */
+package test;
+
+task SimpleFSM {
+    properties {
+        test: {
+            value: [ 0, 1, 2, 3, 4 ]
+        }
+    }
+
+    sync {
+        out u8 value;
+    }
+
+    u8 counter;
+
+    void setup() {
+        counter = 0;
+    }
+
+    void loop() {
+        while (counter < 5) {
+            value.write(counter);
+            fence;
+            counter++;
+        }
+        // Stay done - no more outputs
+    }
+}

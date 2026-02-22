@@ -1,0 +1,62 @@
+/*
+ * Simple test for std.mem.SinglePortRAM
+ * Verifies bytecode simulation with built-in entities
+ */
+package test;
+
+network SimpleMemTest {
+    properties {
+        test: { terminate: "simpleTester.finished" }
+    }
+    // A simple RAM with 16-bit data, 3-bit address (8 locations)
+    ram = new std.mem.SinglePortRAM({size: 8, width: 16});
+
+    // Simple task to write then read from RAM
+    simpleTester = new task {
+        u8 phase;  // 0=write, 1=read, 2=done
+        u3 addr;   // 3-bit address for 8 locations
+        u16 data;
+        bool finished;
+
+        void setup() {
+            phase = 0;
+            addr = 0;
+            data = 100;
+            finished = false;
+        }
+
+        void loop() {
+            if (finished) {
+                return;
+            }
+
+            if (phase == 0) {
+                // Write phase: write incrementing data to all 8 addresses
+                ram.address.write(addr);
+                ram.data.write(data);
+                print("Write addr ", addr, " = ", data, "\n");
+                data = data + 10;
+                addr++;
+                if (addr == 0) {
+                    // Wrapped - done writing
+                    phase = 1;
+                    addr = 0;
+                }
+            } else if (phase == 1) {
+                // Read phase: read back from all addresses
+                ram.address.write(addr);
+                u16 readData = ram.q.read();
+                print("Read addr ", addr, " = ", readData, "\n");
+                addr++;
+                if (addr == 0) {
+                    // Wrapped - done reading
+                    phase = 2;
+                }
+            } else {
+                // Done
+                print("=== Test completed! ===\n");
+                finished = true;
+            }
+        }
+    };
+}

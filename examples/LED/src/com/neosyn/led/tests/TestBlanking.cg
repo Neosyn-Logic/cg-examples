@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2016 Big boss
+ * All rights reserved.
+ */
+package com.neosyn.led.tests;
+
+network TestBlanking {
+	import com.neosyn.led.BlankingLed;
+
+	// instantiate entities
+	blankingLed = new BlankingLed();
+	
+	testBlankingLed = new task {		
+		void loop () {
+			print("led = ", blankingLed.led.read);
+		}
+	};
+}

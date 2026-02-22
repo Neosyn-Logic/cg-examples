@@ -1,0 +1,26 @@
+/*
+ * Simple counter test - uses test property with expected values
+ * The TestGenerator will wrap this task and verify outputs match expected values.
+ */
+package test;
+
+task SimpleCounter {
+    properties {
+        test: {value: [ 1, 2, 3, 4, 5 ] }
+    }
+
+    sync {
+        out u8 value;
+    }
+
+    u8 count;
+
+    void setup() {
+        count = 0;
+    }
+
+    void loop() {
+        count = count + 1;
+        value.write(count);
+    }
+}
