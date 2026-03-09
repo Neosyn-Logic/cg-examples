@@ -16,6 +16,9 @@ testbench/
 .project
 .settings/
 
+# Separate repo (cg-ip-cores)
+ip-cores/
+
 # OS files
 .DS_Store
 Thumbs.db
