@@ -1,0 +1,26 @@
+/*
+ * Network testbench test: test: {port: [values]} on a network with external ports.
+ * The network wraps an inline adder task and exposes its ports.
+ */
+package test;
+
+network NetworkAdder {
+    properties {
+        test: {
+            a: [ 1, 10, 100, 50, 0 ],
+            b: [ 2, 20, 50, 50, 255 ],
+            sum: [ 3, 30, 150, 100, 255 ]
+        }
+    }
+
+    in push u8 a, b;
+    out push u8 sum;
+
+    adder = new task {
+        void loop() {
+            u8 va = a.read();
+            u8 vb = b.read();
+            sum.write(va + vb);
+        }
+    };
+}

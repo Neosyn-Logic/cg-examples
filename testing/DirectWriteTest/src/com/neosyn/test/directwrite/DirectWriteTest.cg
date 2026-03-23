@@ -1,43 +1,41 @@
 /*
- * Test cross-task port write: tester writes to processor's input port
+ * Test network with external ports and internal cross-task communication.
+ * External testbench drives input_val, checks output_val.
+ * Internally, tester forwards to processor and processor doubles and sends back.
  */
 package test;
 
 network DirectWriteTest {
     properties {
-        test: true,
-        test: { terminate: "tester.finished" }
+        test: {
+            input_val: [ 5, 10, 0, 127, 1 ],
+            output_val: [ 10, 20, 0, 254, 2 ]
+        }
     }
+
+    in stream u8 input_val;
+    out stream u8 output_val;
 
     // processor: receives input, doubles it, sends output
     processor = new task {
-        in u8 input_val;
-        out u8 output_val;
+        in push u8 proc_in;
+        out push u8 proc_out;
 
         void loop() {
-            u8 val = input_val.read();
-            output_val.write(val * 2);
+            u8 val = proc_in.read();
+            proc_out.write(val * 2);
         }
     };
 
-    // tester: writes to processor's input port, reads result
+    // tester: forwards network input to processor, forwards result to network output
     tester = new task {
-        bool finished;
-
-        void setup() {
-            finished = false;
-        }
-
         void loop() {
-            // Cross-task write: write to another inline task's input port
-            processor.input_val.write(5);
+            // Read from network input, write to processor
+            processor.proc_in.write(input_val.read());
+            fence;
 
-            // Wait for and read the result
-            u8 result = processor.output_val.read();
-
-            // Print result
-            print("Result: ", result);
-            finished = true;
+            // Read from processor, write to network output
+            output_val.write(processor.proc_out.read());
         }
     };
 }
