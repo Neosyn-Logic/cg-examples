@@ -1,0 +1,94 @@
+package com.neosyn.structdemo;
+
+/*
+ * StructDemo — a tour of the C⏚ L1 struct features (Tier 2).
+ *
+ * Demonstrates, end to end through Fast Sim:
+ *   - nested structs        : Packet embeds a Header struct
+ *   - arrays of struct       : `Packet batch[3]` with `batch[i].hdr.src`
+ *   - whole-struct copy      : `Packet copy = r;`
+ *   - non-bare struct ports  : a `stream Packet` carried across two tasks
+ *                              with ONE shared handshake (atomic transfer)
+ *
+ * Run it: open this file in VS Code (Neosyn C⏚ extension) and use "Fast Sim".
+ * `driver` builds a batch of packets and, for each, writes one into the
+ * `processor` over a stream struct port, reads the forwarded result back,
+ * copies it, and prints its nested fields. After three packets it terminates.
+ *
+ * Notes / current v1 limits:
+ *   - structs work as locals, ports and values; task-level struct STATE
+ *     fields are not supported yet, so `batch` is a local inside loop().
+ *   - struct ports connect via direct cross-task references
+ *     (`processor.in_pkt.write(...)`), not network-level `connect`.
+ */
+network StructDemo {
+    properties { test: { terminate: "driver.finished" } }
+
+    // A nested struct: Packet embeds a Header struct plus a scalar payload.
+    struct Header {
+        u8 src;
+        u8 dst;
+    }
+    struct Packet {
+        Header hdr;
+        u16 payload;
+    }
+
+    // PROCESSOR — receives a packet on a non-bare (stream) struct port and
+    // forwards the whole nested struct on another, proving it survives the trip.
+    processor = new task {
+        in stream Packet in_pkt;
+        out stream Packet out_pkt;
+
+        void loop() {
+            Packet p = in_pkt.read();      // gated whole-struct read
+            out_pkt.write(p);              // whole-struct write over a stream port
+        }
+    };
+
+    // DRIVER — builds a local array of struct, sends each element through the
+    // processor, and prints the round-tripped nested fields.
+    driver = new task {
+        u8 n;
+        bool finished;
+
+        void setup() {
+            n = 0;
+            finished = false;
+        }
+
+        void loop() {
+            if (!finished) {
+                // arrays of struct (Tier 2.3): per-element nested-field writes
+                Packet batch[3];
+                batch[0].hdr.src = 0; batch[0].hdr.dst = 0xA0; batch[0].payload = 0x100;
+                batch[1].hdr.src = 1; batch[1].hdr.dst = 0xA1; batch[1].payload = 0x200;
+                batch[2].hdr.src = 2; batch[2].hdr.dst = 0xA2; batch[2].payload = 0x300;
+
+                // copy element n's fields into a packet (array-element + nested
+                // reads), then stream the whole struct to the processor
+                Packet p;
+                p.hdr.src = batch[n].hdr.src;
+                p.hdr.dst = batch[n].hdr.dst;
+                p.payload = batch[n].payload;
+                processor.in_pkt.write(p);
+
+                idle(2);
+
+                Packet r = processor.out_pkt.read();   // gated whole-struct read
+                Packet copy = r;                        // whole-struct copy
+
+                print("packet ", n,
+                      ": src=", copy.hdr.src,
+                      " dst=", copy.hdr.dst,
+                      " payload=", copy.payload, "\n");
+
+                n = n + 1;
+                if (n == 3) {
+                    print("=== StructDemo done (3 packets) ===\n");
+                    finished = true;
+                }
+            }
+        }
+    };
+}

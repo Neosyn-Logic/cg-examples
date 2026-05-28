@@ -25,6 +25,7 @@ examples/
   Arithmetic/       Counter pipeline, GCD algorithm
   HelloWorld/       7-segment display driver
   LED/              Blinking LED patterns
+  StructDemo/       Nested structs, arrays of struct, struct ports
 testing/
   SimpleCounter/    Basic counter with test property
   SimpleAdder/      Multi-input adder test
@@ -193,6 +194,22 @@ bundle Definitions {
 ```
 
 **GCD** (`Gcd` task): computes the greatest common divisor of two 16-bit inputs using the subtractive algorithm. `Gcd_top` network provides a test harness with stimulus (64, 48) and expected result (16).
+
+### StructDemo
+
+A packet-pipeline tour of C⏚ **structs** (`driver` → `processor`, over a `stream` struct port):
+
+- **nested structs** — `Packet` embeds a `Header` struct
+- **arrays of struct** — `Packet batch[3]` with per-element field access (`batch[i].hdr.src`)
+- **whole-struct copy** — `Packet copy = r;`
+- **non-bare struct ports** — a `stream Packet` carried across two tasks, where one shared handshake gates the whole struct for atomic transfer
+
+```cg
+struct Header { u8 src; u8 dst; }
+struct Packet { Header hdr; u16 payload; }
+```
+
+Run it with **Fast Sim**: `driver` builds a batch of packets, streams three of them through `processor`, and prints each round-tripped packet's nested fields before terminating.
 
 ## Simulation tests
 
