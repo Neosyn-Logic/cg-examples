@@ -9,9 +9,7 @@ task SimpleCounter {
         test: {value: [ 1, 2, 3, 4, 5 ] }
     }
 
-    sync {
-        out u8 value;
-    }
+    out push u8 value;
 
     u8 count;
 

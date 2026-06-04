@@ -1,0 +1,72 @@
+package com.neosyn.examples.ports;
+
+/*
+ * PortInterfaces — the three port handshakes, side by side.
+ *
+ * Every port chooses how producer and consumer synchronize. C⏚ has three
+ * synchronizing interfaces plus a bare (unsynchronized) one:
+ *
+ *   bare      no handshake. The value is just a wire, valid every cycle.
+ *   push      valid only. The producer writes; the consumer must be ready
+ *             to catch it. Fire-and-forget. (Replaces the old `sync`.)
+ *   stream    valid + ready. The consumer can stall the producer with
+ *             backpressure. (Replaces the old `sync ready`.)
+ *   confirm   valid + ack. The producer is told the value was accepted.
+ *             (Replaces the old `sync ack`.)
+ *
+ * This network wires one of each into a single processor that sums the
+ * three values, proving all three interfaces interoperate. A checker reads
+ * the result and asserts it.
+ *
+ * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim".
+ */
+network PortInterfaces {
+    properties { test: { terminate: "checker.finished" } }
+
+    // DRIVER — one output per interface kind.
+    driver = new task {
+        out push    u8 a;   // fire-and-forget
+        out stream  u8 b;   // backpressured
+        out confirm u8 c;   // acknowledged
+
+        void setup() {
+            a.write(10);
+            b.write(20);
+            c.write(30);
+        }
+    };
+
+    // PROCESSOR — read one of each and combine them.
+    processor = new task {
+        in push    u8 inA;
+        in stream  u8 inB;
+        in confirm u8 inC;
+        out push u8 result;
+
+        void setup() {
+            u8 sum = inA.read() + inB.read() + inC.read();
+            result.write(sum);
+        }
+    };
+    // Positional wiring: fills processor's inputs in declaration order,
+    // so inA <- a, inB <- b, inC <- c.
+    processor.reads(driver.a, driver.b, driver.c);
+
+    // CHECKER — verify the combined result.
+    checker = new task {
+        bool finished;
+
+        void setup() {
+            finished = false;
+        }
+
+        void loop() {
+            if (!finished) {
+                u8 r = processor.result.read();
+                assert(r == 60);          // 10 + 20 + 30
+                print("push+stream+confirm sum = ", r, " OK\n");
+                finished = true;
+            }
+        }
+    };
+}

@@ -30,7 +30,7 @@ package com.neosyn.arith.gcd;
 
 network Gcd_top {
 	gcdSource = new task {
-		out sync u16 x, sync y;
+		out push u16 x, push y;
 
 		void setup() {
 			x.write(64);
@@ -40,7 +40,7 @@ network Gcd_top {
 
 	gcdExpected = new task {
 		void setup() {
-			assert(gcd.z.read == 16);
+			assert(gcd.z.read() == 16);
 		}
 	};
 

@@ -1,0 +1,73 @@
+package com.neosyn.examples.fifo;
+
+/*
+ * Fifo — buffering a stream with a standard-library FIFO.
+ *
+ * The standard library ships ready-made building blocks. `SynchronousFIFO`
+ * is a single-clock queue: you give it a depth and a data width, wire a
+ * producer into its input and a consumer onto its output, and it absorbs
+ * rate mismatches between the two through the `stream` handshake (valid +
+ * ready backpressure).
+ *
+ * Demonstrates:
+ *   - instantiating a stdlib entity with parameters
+ *                          : new std.fifo.SynchronousFIFO({size: 16, width: 8})
+ *   - wiring producer -> fifo -> consumer with `.reads(...)`
+ *   - `stream` ports providing flow control end to end
+ *
+ * `source` emits 1..8 on a stream port; the FIFO buffers them; `sink` reads
+ * them back and asserts they arrive in order, then terminates.
+ *
+ * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim".
+ */
+network Fifo {
+    properties { test: { terminate: "sink.finished" } }
+
+    // PRODUCER — push the numbers 1..8 into the queue.
+    source = new task {
+        out stream u8 dout;
+        u8 n;
+
+        void setup() {
+            n = 0;
+        }
+
+        void loop() {
+            if (n < 8) {
+                n = n + 1;
+                dout.write(n);
+            }
+        }
+    };
+
+    // A 16-deep, 8-bit single-clock FIFO sits between the two tasks.
+    fifo = new std.fifo.SynchronousFIFO({size: 16, width: 8});
+
+    // CONSUMER — read the queue and check the order is preserved.
+    sink = new task {
+        in stream u8 din;
+        u8 expected;
+        bool finished;
+
+        void setup() {
+            expected = 1;
+            finished = false;
+        }
+
+        void loop() {
+            if (!finished) {
+                u8 v = din.read();
+                assert(v == expected);
+                print("fifo out: ", v, "\n");
+                expected = expected + 1;
+                if (expected == 9) {
+                    print("=== Fifo done (8 values, in order) ===\n");
+                    finished = true;
+                }
+            }
+        }
+    };
+
+    fifo.reads(source.dout);
+    sink.reads(fifo.dout);
+}

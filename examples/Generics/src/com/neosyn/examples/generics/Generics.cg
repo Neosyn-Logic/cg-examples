@@ -1,0 +1,52 @@
+package com.neosyn.examples.generics;
+
+/*
+ * Generics — one task, many widths.
+ *
+ * A generic task takes compile-time parameters in angle brackets. The
+ * compiler monomorphizes it: each `new Register<...>()` produces a separate,
+ * specialized hardware instance with the width baked in. There is no runtime
+ * cost — `Register<4>` and `Register<12>` are distinct modules.
+ *
+ * Demonstrates:
+ *   - a generic task with two parameters + defaults
+ *                                  : task Register<int W = 8, int EXPECT = 0xFF>
+ *   - using a parameter as a width : uint<W> value;
+ *   - instantiating at explicit widths, positionally : new Register<4, 0xF>()
+ *   - falling back to the defaults : new Register()   // W = 8, EXPECT = 0xFF
+ *
+ * Each instance loads all-ones into its `uint<W>` register. The width is the
+ * only thing that differs, so the value is masked to W bits: 0xF for W=4,
+ * 0xFF for W=8, 0xFFF for W=12. Each instance asserts against the EXPECT it
+ * was given, so a mis-bound parameter fails its own run.
+ *
+ * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim".
+ */
+task Register<int W = 8, int EXPECT = 0xFF> {
+    uint<W> value;
+    bool finished;
+
+    void setup() {
+        value = 0;
+        finished = false;
+    }
+
+    void loop() {
+        if (!finished) {
+            // The literal is wider than the register; assigning it keeps only
+            // the low W bits — the width is the only per-instance difference.
+            value = (uint<W>) 0xFFFF;
+            print("W=", W, " value=", value, " (expected ", EXPECT, ")\n");
+            assert(value == EXPECT);
+            finished = true;
+        }
+    }
+}
+
+network Generics {
+    properties { test: { terminate: "wide.finished" } }
+
+    narrow = new Register<4, 0xF>();     // W=4  -> value masks to 0xF
+    byte   = new Register();             // defaults: W=8, EXPECT=0xFF
+    wide   = new Register<12, 0xFFF>();  // W=12 -> value masks to 0xFFF
+}

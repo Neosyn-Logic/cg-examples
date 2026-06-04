@@ -12,13 +12,11 @@ task SimpleDoubler {
         }
     }
 
-    sync {
-        in u8 input;
-        out u8 output;
-    }
+    in push u8 input;
+    out push u8 output;
 
     void loop() {
-        u8 v = input.read;
+        u8 v = input.read();
         output.write(v * 2);
     }
 }

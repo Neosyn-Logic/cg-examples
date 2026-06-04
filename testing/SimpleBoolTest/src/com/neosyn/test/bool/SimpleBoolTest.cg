@@ -11,9 +11,7 @@ task SimpleBoolTest {
         }
     }
 
-    sync {
-        out bool flag;
-    }
+    out push bool flag;
 
     bool state;
     u8 count;

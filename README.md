@@ -111,13 +111,11 @@ Ports can use different communication protocols:
 
 ```cg
 task SimpleDoubler {
-    sync {
-        in u8 input;
-        out u8 output;
-    }
+    in push u8 input;
+    out push u8 output;
 
     void loop() {
-        u8 v = input.read;
+        u8 v = input.read();
         output.write(v * 2);
     }
 }
@@ -129,8 +127,8 @@ Tasks with blocking operations (port reads, `fence`, `idle()`) automatically bec
 
 ```cg
 task Gcd {
-    in sync u16 a, sync b;
-    out sync u16 z;
+    in push u16 a, push b;
+    out push u16 z;
 
     u16 x, y;
 
@@ -211,6 +209,73 @@ struct Packet { Header hdr; u16 payload; }
 
 Run it with **Fast Sim**: `driver` builds a batch of packets, streams three of them through `processor`, and prints each round-tripped packet's nested fields before terminating.
 
+### Enums
+
+`TrafficLight` names its FSM states with a C⏚ **enum** instead of magic numbers:
+
+```cg
+enum Light { GREEN, YELLOW, RED }
+Light state;
+state = GREEN;          // bare literal
+state = Light.RED;      // qualified literal
+if (state == GREEN) ... // compare against a literal
+```
+
+The light cycles `GREEN → YELLOW → RED` and publishes a 2-bit code. Enum literals are 0-indexed and the width is inferred from the literal count.
+
+### Generics
+
+`Register<W>` is one task that monomorphizes to many widths:
+
+```cg
+task Register<int W = 8, int EXPECT = 0xFF> {
+    uint<W> value;
+    ...
+}
+narrow = new Register<4, 0xF>();    // distinct hardware instance
+wide   = new Register<12, 0xFFF>();
+byte   = new Register();            // defaults: W = 8, EXPECT = 0xFF
+```
+
+Each `new Register<...>()` is a separate specialized module — there is no runtime cost.
+
+### Fifo
+
+A producer streams `1..8` through a standard-library FIFO into a consumer:
+
+```cg
+fifo = new std.fifo.SynchronousFIFO({size: 16, width: 8});
+fifo.reads(source.dout);
+sink.reads(fifo.dout);
+```
+
+The `stream` handshake provides end-to-end flow control (valid + ready backpressure).
+
+### PortInterfaces
+
+A side-by-side tour of the three synchronizing port interfaces — `push`, `stream`, and `confirm` — wired into one processor that sums them. Shows the syntax and semantics of each, with positional `.reads(...)` wiring.
+
+### RegisterFile
+
+Demonstrates **mutable array state** (as opposed to constant lookup tables). A 4-entry `u8 regs[4]` is written at a computed index, then those slots are read back on a later cycle:
+
+```cg
+u8 regs[4];          // mutable state, survives across cycles
+regs[i] = (u8)(i * i);   // computed-index write
+dout.write(regs[i]);     // computed-index read
+```
+
+### ClockDomains
+
+Crosses a signal between two clock domains with a standard-library synchronizer:
+
+```cg
+properties { clocks: ["clock_in", "clock_out"] }
+sync_ff = new SynchronizerFF();   // inherits the parent's two clocks
+sync_ff.reads(din);
+sync_ff.writes(dout);
+```
+
 ## Simulation tests
 
 Tests use the `test` property to define expected port values. The simulation framework automatically generates stimulus and checks outputs.
@@ -225,9 +290,7 @@ task SimpleCounter {
         test: { value: [1, 2, 3, 4, 5] }
     }
 
-    sync {
-        out u8 value;
-    }
+    out push u8 value;
 
     u8 count;
 
@@ -249,9 +312,9 @@ Tests a task with multiple inputs:
 ```cg
 properties {
     test: {
-        a: [1, 2, 3, 4, 5],
-        b: [10, 20, 30, 40, 50],
-        sum: [11, 22, 33, 44, 55]
+        a: [1, 10, 100, 50, 0],
+        b: [2, 20, 50, 50, 255],
+        sum: [3, 30, 150, 100, 255]
     }
 }
 ```

@@ -1,0 +1,40 @@
+package com.neosyn.examples.cdc;
+
+import std.lib.SynchronizerFF;
+
+/*
+ * ClockDomains — crossing a signal between two clocks safely.
+ *
+ * When a signal leaves one clock domain and is sampled by another, sampling
+ * it directly risks metastability. The standard fix is a synchronizer: a
+ * short chain of flip-flops clocked by the destination domain. The standard
+ * library ships one as `std.lib.SynchronizerFF`.
+ *
+ * Demonstrates:
+ *   - declaring two clock domains : properties { clocks: ["clock_in", "clock_out"] }
+ *   - instantiating a stdlib synchronizer that inherits the parent's clocks
+ *   - the whole-task `.reads(...)` / `.writes(...)` wiring form
+ *
+ * `din` is driven in the `clock_in` domain; `dout` is the synchronized copy
+ * in the `clock_out` domain. The two-flop synchronizer delays the value by
+ * two destination-clock edges, which the expected vector below accounts for.
+ *
+ * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim". The test
+ * property drives `din` and checks the synchronized `dout`.
+ */
+network ClockDomains {
+    properties {
+        clocks: ["clock_in", "clock_out"],
+        test: {
+            din:  [true,  true, false, false, true,  false, false, false],
+            dout: [false, true, true,  false, false, true,  false, false]
+        }
+    }
+
+    in bool din;
+    out bool dout;
+
+    sync_ff = new SynchronizerFF();   // inherits the parent's two clocks
+    sync_ff.reads(din);
+    sync_ff.writes(dout);
+}

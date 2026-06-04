@@ -13,15 +13,13 @@ task SimpleAdder {
         }
     }
 
-    sync {
-        in u8 a;
-        in u8 b;
-        out u8 sum;
-    }
+    in push u8 a;
+    in push u8 b;
+    out push u8 sum;
 
     void loop() {
-        u8 va = a.read;
-        u8 vb = b.read;
+        u8 va = a.read();
+        u8 vb = b.read();
         sum.write(va + vb);
     }
 }

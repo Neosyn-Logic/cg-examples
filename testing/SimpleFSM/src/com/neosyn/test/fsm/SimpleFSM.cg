@@ -11,9 +11,7 @@ task SimpleFSM {
         }
     }
 
-    sync {
-        out u8 value;
-    }
+    out push u8 value;
 
     u8 counter;
 

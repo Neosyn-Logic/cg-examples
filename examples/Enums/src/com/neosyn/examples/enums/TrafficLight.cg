@@ -1,0 +1,55 @@
+package com.neosyn.examples.enums;
+
+/*
+ * TrafficLight — naming FSM states with a C⏚ enum.
+ *
+ * Enums give a set of named integer constants a type. They make a state
+ * machine read like its specification instead of like a pile of magic
+ * numbers. This controller cycles GREEN -> YELLOW -> RED forever and
+ * publishes the current light as a 2-bit code.
+ *
+ * Demonstrates:
+ *   - declaring an enum            : enum Light { GREEN, YELLOW, RED }
+ *   - an enum-typed state variable : Light state;
+ *   - a bare literal               : state = GREEN;
+ *   - a qualified literal          : state = Light.RED;
+ *   - comparing against a literal  : if (state == GREEN) ...
+ *
+ * Enum literals are 0-indexed (GREEN=0, YELLOW=1, RED=2) and the width is
+ * inferred from the number of literals (3 literals -> 2 bits).
+ *
+ * Note: enums are internal value types — they are not a port type yet — so
+ * the light is published as a `u2` code rather than as a `Light` port.
+ *
+ * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim". The test
+ * property checks the emitted sequence over two full cycles.
+ */
+task TrafficLight {
+    properties {
+        test: { light: [ 0, 1, 2, 0, 1, 2 ] }   // GREEN, YELLOW, RED, repeating
+    }
+
+    enum Light { GREEN, YELLOW, RED }
+
+    out push u2 light;
+
+    Light state;
+
+    void setup() {
+        state = GREEN;          // bare literal
+    }
+
+    void loop() {
+        // Publish the current light, then advance to the next state.
+        if (state == GREEN) {
+            light.write(0);
+            state = YELLOW;
+        } else if (state == YELLOW) {
+            light.write(1);
+            state = Light.RED;  // qualified literal — same as RED
+        } else {
+            light.write(2);
+            state = GREEN;
+        }
+    }
+}

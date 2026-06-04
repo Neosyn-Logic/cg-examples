@@ -1,0 +1,52 @@
+package com.neosyn.examples.arrays;
+
+/*
+ * RegisterFile — mutable array state.
+ *
+ * A state variable can be an array. Unlike a constant lookup table, an array
+ * of state survives across cycles and can be written and read at a computed
+ * index. That is exactly what a register file, a scratchpad, or a line buffer
+ * is built from.
+ *
+ * This task has a 4-entry register file `regs`. In the fill phase it stores
+ * the square of each index (regs[i] = i*i) at a computed index. In the read
+ * phase it reads those same slots back — values written on an earlier cycle —
+ * proving the array is real state, not a lookup table.
+ *
+ * Note: the output is written on every cycle (in both phases). A `push`
+ * output that is written only on some cycles stalls the simulator, so keep
+ * the write unconditional and gate the meaning elsewhere.
+ *
+ * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim". The test
+ * property checks the emitted sequence.
+ */
+task RegisterFile {
+    properties {
+        test: { dout: [ 0, 1, 4, 9, 0, 1, 4, 9 ] }
+    }
+
+    out push u8 dout;
+
+    u8 regs[4];     // mutable array state
+    u2 i;           // index, wraps 0..3 automatically (2 bits)
+    bool filling;
+
+    void setup() {
+        i = 0;
+        filling = true;
+    }
+
+    void loop() {
+        if (filling) {
+            regs[i] = (u8) (i * i);   // computed-index WRITE
+            dout.write(regs[i]);      // emit what we just stored
+            if (i == 3) {
+                filling = false;
+            }
+            i = i + 1;                // u2 wraps 3 -> 0
+        } else {
+            dout.write(regs[i]);      // computed-index READ of earlier state
+            i = i + 1;
+        }
+    }
+}

@@ -34,13 +34,13 @@ package com.neosyn.arith.gcd;
  * @author Matthieu Wipliez
  */
 task Gcd {
-	in sync u16 a, sync b; out sync u16 z;
+	in push u16 a, push b; out push u16 z;
 
 	u16 x, y;
 
 	void loop() {
-		x = a.read;
-		y = b.read;
+		x = a.read();
+		y = b.read();
 
 		while (y != 0) {
 			print("x = ", x, ", y = ", y);
