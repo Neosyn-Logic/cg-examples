@@ -34,6 +34,7 @@ testing/
   SimpleBoolTest/   Boolean flag output test
   SimpleMemTest/    RAM read/write with built-in entity
   DirectWriteTest/  Cross-task port communication
+  MultiplyStream/   Streaming signed multiply via std.math.Multiply
 ```
 
 Each project follows the standard C⏚ layout:
@@ -375,6 +376,31 @@ processor.input_val.write(5);
 // Then reads the result
 u8 result = processor.output_val.read();
 ```
+
+### MultiplyStream
+
+A streaming signed multiplier built on the `std.math.Multiply` built-in. External `push` operand ports `a`/`b` feed the multiplier and the full 64-bit product streams out on `p`:
+
+```cg
+network MultiplyStream {
+    properties {
+        test: {
+            a: [ 3, -5,  7, 46341 ],
+            b: [ 10, 4, -1, 46341 ],
+            p: [ 30, -20, -7, 2147488281 ]
+        }
+    }
+
+    in push int<32> a, b;
+    out push int<64> p;
+
+    mul = new std.math.Multiply();      // registered signed multiplier
+    mul.reads(feeder.ma, feeder.mb);    // fed and drained by sync-ready bridge tasks
+    ...
+}
+```
+
+`p` is 64-bit because a 32×32 product overflows 32 bits (the last vector, 46341² = 2 147 488 281, is > `INT32_MAX`). The built-in gives a **registered** product (1-cycle latency) instead of a bare combinational `*`, so the multiply path can map/retime into a DSP block's pipeline registers. The `feeder`/`sink` tasks adapt the external `push` ports to the built-in's `sync ready` handshake, and that back-pressure paces the stream automatically. Requires the toolchain that ships `std.math.Multiply` (vscode-cg 2.9.0+).
 
 ## Key concepts
 

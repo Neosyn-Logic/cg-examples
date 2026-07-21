@@ -1,0 +1,52 @@
+/*
+ * Streaming signed multiplier built on the std.math.Multiply built-in.
+ *
+ * Each pair (a, b) is multiplied into the full 64-bit signed product
+ * p = a * b. p must be 64-bit (2 * 32) because a 32x32 product overflows 32
+ * bits: the last vector, 46341 * 46341 = 2_147_488_281, is > INT32_MAX.
+ *
+ * std.math.Multiply gives a REGISTERED product (1-cycle latency) instead of a
+ * bare combinational `*`, so the long multiply path is broken and the tool can
+ * map/retime it into a DSP block's pipeline registers for higher Fmax.
+ *
+ * The `feeder` and `sink` tasks bridge the network's external `push` ports to
+ * the built-in's `sync ready` handshake. Because those internal links are
+ * `sync ready`, the multiplier's back-pressure flows all the way to the
+ * external ports and naturally paces the stream — no manual spacing needed.
+ */
+package test;
+
+network MultiplyStream {
+    properties {
+        test: {
+            a: [ 3, -5,  7, 46341 ],
+            b: [ 10, 4, -1, 46341 ],
+            p: [ 30, -20, -7, 2147488281 ]
+        }
+    }
+
+    in push int<32> a, b;
+    out push int<64> p;
+
+    // Adapt the external push inputs onto the built-in's sync-ready operand ports.
+    feeder = new task {
+        out sync ready int<32> ma;
+        out sync ready int<32> mb;
+        void loop() {
+            ma.write(a.read());
+            mb.write(b.read());
+        }
+    };
+
+    mul = new std.math.Multiply();
+    mul.reads(feeder.ma, feeder.mb);
+
+    // Adapt the built-in's sync-ready product onto the external push output.
+    sink = new task {
+        in sync ready int<64> mp;
+        void loop() {
+            p.write(mp.read());
+        }
+    };
+    sink.reads(mul.p);
+}
