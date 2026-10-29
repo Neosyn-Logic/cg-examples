@@ -1,9 +1,9 @@
 package com.neosyn.examples.ports;
 
 /*
- * PortInterfaces — the three port handshakes, side by side.
+ * PortInterfaces — the three port kinds, side by side.
  *
- * Every port chooses how producer and consumer synchronize. C⏚ has three
+ * Every port chooses how producer and consumer synchronize. C⏚ has two
  * synchronizing interfaces plus a bare (unsynchronized) one:
  *
  *   bare      no handshake. The value is just a wire, valid every cycle.
@@ -11,11 +11,14 @@ package com.neosyn.examples.ports;
  *             to catch it. Fire-and-forget. (Replaces the old `sync`.)
  *   stream    valid + ready. The consumer can stall the producer with
  *             backpressure. (Replaces the old `sync ready`.)
- *   confirm   valid + ack. The producer is told the value was accepted.
- *             (Replaces the old `sync ack`.)
+ *
+ * There is no `confirm` (valid + ack) any more: since 3.5.1 it is refused
+ * with an error, because the generated hardware never read the ack, so a
+ * value the consumer was not ready for was lost. Use `stream` when the
+ * producer must not lose a value, `push` when it may.
  *
  * This network wires one of each into a single processor that sums the
- * three values, proving all three interfaces interoperate. A checker reads
+ * three values, proving all three kinds interoperate. A checker reads
  * the result and asserts it.
  *
  * Run it: open in VS Code (Neosyn C⏚ extension) and use "Fast Sim".
@@ -27,7 +30,7 @@ network PortInterfaces {
     driver = new task {
         out push    u8 a;   // fire-and-forget
         out stream  u8 b;   // backpressured
-        out confirm u8 c;   // acknowledged
+        out         u8 c;   // bare: a wire, holds its last value
 
         void setup() {
             a.write(10);
@@ -40,11 +43,11 @@ network PortInterfaces {
     processor = new task {
         in push    u8 inA;
         in stream  u8 inB;
-        in confirm u8 inC;
-        out push u8 result;
+        in          u8 inC;
+        out push    u10 result;
 
         void setup() {
-            u8 sum = inA.read() + inB.read() + inC.read();
+            u10 sum = inA.read() + inB.read() + inC.read();   // 3 x u8: up to 765
             result.write(sum);
         }
     };
@@ -62,9 +65,9 @@ network PortInterfaces {
 
         void loop() {
             if (!finished) {
-                u8 r = processor.result.read();
+                u10 r = processor.result.read();
                 assert(r == 60);          // 10 + 20 + 30
-                print("push+stream+confirm sum = ", r, " OK\n");
+                print("push+stream+bare sum = ", r, " OK\n");
                 finished = true;
             }
         }

@@ -39,7 +39,7 @@ Generated files (`.ir/`, `verilog-gen/`, `sim/`, `*.vcd`) are gitignored.
 
 - Use meaningful names for tasks, networks, and ports
 - Add comments for non-obvious logic
-- Use the new port interface keywords: `push`, `stream`, `confirm`
+- Use the new port interface keywords: `push` and `stream` (`confirm` is refused since 3.5.1)
 - Include test properties where applicable (`properties { test: {...} }`)
 
 ## Questions?

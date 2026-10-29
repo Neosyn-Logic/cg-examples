@@ -108,7 +108,9 @@ Ports can use different communication protocols:
 | *(bare)*  | Directly wired, always available (default) |
 | `push`    | Valid for one cycle, fire-and-forget |
 | `stream`  | Holds valid until consumed, with backpressure |
-| `confirm` | Delivery confirmation with acknowledgement |
+
+There is no `confirm` port any more: since 3.5.1 it is refused with an error, because the generated
+hardware never read the acknowledgement. Use `stream` when a value must not be lost.
 
 ```cg
 task SimpleDoubler {
@@ -254,7 +256,7 @@ The `stream` handshake provides end-to-end flow control (valid + ready backpress
 
 ### PortInterfaces
 
-A side-by-side tour of the three synchronizing port interfaces — `push`, `stream`, and `confirm` — wired into one processor that sums them. Shows the syntax and semantics of each, with positional `.reads(...)` wiring.
+A side-by-side tour of the three port kinds — `push`, `stream` and bare — wired into one processor that sums them. Shows the syntax and semantics of each, with positional `.reads(...)` wiring.
 
 ### RegisterFile
 
