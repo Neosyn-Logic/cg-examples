@@ -13,7 +13,8 @@ package com.neosyn.structdemo;
  * Run it: open this file in VS Code (Neosyn C⏚ extension) and use "Fast Sim".
  * `driver` builds a batch of packets and, for each, writes one into the
  * `processor` over a stream struct port, reads the forwarded result back,
- * copies it, and prints its nested fields. After three packets it terminates.
+ * copies it, prints its nested fields and asserts each one is what was sent.
+ * After three packets it terminates.
  *
  * Notes / current v1 limits:
  *   - structs work as locals, ports and values; task-level struct STATE
@@ -82,6 +83,10 @@ network StructDemo {
                       ": src=", copy.hdr.src,
                       " dst=", copy.hdr.dst,
                       " payload=", copy.payload, "\n");
+                // the nested struct survived the trip through the processor
+                assert(copy.hdr.src == batch[n].hdr.src);
+                assert(copy.hdr.dst == batch[n].hdr.dst);
+                assert(copy.payload == batch[n].payload);
 
                 n = n + 1;
                 if (n == 3) {
