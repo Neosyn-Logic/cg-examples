@@ -1,6 +1,6 @@
 /*
  * Simple test for std.mem.SinglePortRAM
- * Verifies bytecode simulation with built-in entities
+ * Writes 8 cells, reads each back and asserts it is the value written.
  */
 package test;
 
@@ -16,46 +16,53 @@ network SimpleMemTest {
         u8 phase;  // 0=write, 1=read, 2=done
         u3 addr;   // 3-bit address for 8 locations
         u16 data;
+        u16 expected;  // the value written at addr, recomputed in the read phase
         bool finished;
 
         void setup() {
             phase = 0;
             addr = 0;
             data = 100;
+            expected = 100;
             finished = false;
         }
 
         void loop() {
-            if (finished) {
-                return;
-            }
-
-            if (phase == 0) {
-                // Write phase: write incrementing data to all 8 addresses
-                ram.address.write(addr);
-                ram.data.write(data);
-                print("Write addr ", addr, " = ", data, "\n");
-                data = data + 10;
-                addr++;
-                if (addr == 0) {
-                    // Wrapped - done writing
-                    phase = 1;
-                    addr = 0;
+            if (!finished) {
+                if (phase == 0) {
+                    // Write phase: write incrementing data to all 8 addresses
+                    ram.address.write(addr);
+                    ram.data.write(data);
+                    print("Write addr ", addr, " = ", data, "\n");
+                    data = data + 10;
+                    addr++;
+                    if (addr == 0) {
+                        // Wrapped - done writing
+                        phase = 1;
+                        addr = 0;
+                    }
+                } else if (phase == 1) {
+                    // Read phase: read back from all addresses
+                    ram.address.write(addr);
+                    fence;
+                    // SinglePortRAM registers its read: after an address is applied the FIRST q
+                    // sample still carries the previous value, the SECOND the addressed cell.
+                    // Discard one (the discipline of tests/.../bytecode/SimpleMemoryTest.cg).
+                    u16 unused = ram.q.read();
+                    u16 readData = ram.q.read();
+                    print("Read addr ", addr, " = ", readData, "\n");
+                    assert(readData == expected);
+                    expected = expected + 10;
+                    addr++;
+                    if (addr == 0) {
+                        // Wrapped - done reading
+                        phase = 2;
+                    }
+                } else {
+                    // Done
+                    print("=== Test completed! ===\n");
+                    finished = true;
                 }
-            } else if (phase == 1) {
-                // Read phase: read back from all addresses
-                ram.address.write(addr);
-                u16 readData = ram.q.read();
-                print("Read addr ", addr, " = ", readData, "\n");
-                addr++;
-                if (addr == 0) {
-                    // Wrapped - done reading
-                    phase = 2;
-                }
-            } else {
-                // Done
-                print("=== Test completed! ===\n");
-                finished = true;
             }
         }
     };
